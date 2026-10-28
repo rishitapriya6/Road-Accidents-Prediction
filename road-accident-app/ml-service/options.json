@@ -1,0 +1,57 @@
+{
+  "city": [
+    "Bangalore",
+    "Chandigarh",
+    "Chennai",
+    "Delhi",
+    "Hyderabad",
+    "Kolkata",
+    "Mumbai",
+    "Pune"
+  ],
+  "state": [
+    "Delhi",
+    "Karnataka",
+    "Maharashtra",
+    "Punjab",
+    "Tamil Nadu",
+    "Telangana",
+    "West Bengal"
+  ],
+  "day_of_week": [
+    "Friday",
+    "Monday",
+    "Saturday",
+    "Sunday",
+    "Thursday",
+    "Tuesday",
+    "Wednesday"
+  ],
+  "road_type": [
+    "highway",
+    "rural",
+    "urban"
+  ],
+  "weather": [
+    "clear",
+    "fog",
+    "rain"
+  ],
+  "visibility": [
+    "high",
+    "low",
+    "medium"
+  ],
+  "traffic_density": [
+    "high",
+    "low",
+    "medium"
+  ],
+  "cause": [
+    "distraction",
+    "drunk driving",
+    "overspeeding",
+    "poor road",
+    "weather"
+  ]
+}

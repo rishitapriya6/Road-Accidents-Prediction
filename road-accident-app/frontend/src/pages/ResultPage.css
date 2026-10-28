@@ -1,0 +1,130 @@
+/* ── ResultPage styles ── */
+.result-page {
+  max-width: 700px;
+  margin: 2rem auto;
+  padding: 0 1rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── ResultCard ── */
+.result-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+  padding: 1.8rem 2rem;
+}
+
+.result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.2rem;
+}
+
+.result-title {
+  font-size: 1.4rem;
+  color: #1a237e;
+  margin: 0;
+}
+
+/* Severity badges */
+.severity-badge {
+  padding: 0.3rem 0.9rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  letter-spacing: 0.5px;
+}
+
+.badge-minor { background: #c8e6c9; color: #1b5e20; }
+.badge-major { background: #ffe0b2; color: #e65100; }
+.badge-fatal { background: #ffcdd2; color: #b71c1c; }
+
+.result-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.2rem;
+}
+
+.detail-row {
+  display: flex;
+  gap: 0.8rem;
+  font-size: 0.92rem;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: #555;
+  min-width: 90px;
+}
+
+/* Disclaimer box */
+.disclaimer {
+  background: #fff3e0;
+  border-left: 4px solid #e65100;
+  border-radius: 6px;
+  padding: 0.8rem 1rem;
+  font-size: 0.85rem;
+  color: #bf360c;
+  line-height: 1.5;
+}
+
+/* ── ProbabilityBars ── */
+.prob-bars {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+  padding: 1.5rem 2rem;
+}
+
+.prob-title {
+  font-size: 1rem;
+  color: #1a237e;
+  margin-bottom: 1rem;
+}
+
+.prob-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 0.7rem;
+}
+
+.prob-label {
+  min-width: 55px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.prob-track {
+  flex: 1;
+  height: 12px;
+  background: #eceff1;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.prob-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.6s ease;
+}
+
+.prob-pct {
+  min-width: 48px;
+  text-align: right;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+/* ── Action buttons ── */
+.result-actions {
+  display: flex;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
