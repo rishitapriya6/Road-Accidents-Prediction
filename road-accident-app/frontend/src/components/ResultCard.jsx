@@ -3,21 +3,21 @@
  * Displays the predicted severity with a colour-coded badge.
  *
  * Props:
- *   prediction: { predictedSeverity, probMinor, probMajor, probFatal,
+ *   prediction: {Severity, probMinor, probMajor, probFatal,
  *                 city, state, weather, cause, createdAt, ... }
  */
 export default function ResultCard({ prediction }) {
-  const { predictedSeverity, city, state, weather, cause, createdAt } = prediction;
+  const { severity, city, state, weather, cause, createdAt } = prediction;
 
   // Colour scheme: green = minor, orange = major, red = fatal
   const badgeClass = {
     minor: "badge-minor",
     major: "badge-major",
     fatal: "badge-fatal",
-  }[predictedSeverity] || "badge-minor";
+  }[severity] || "badge-minor";
 
-  const label = predictedSeverity
-    ? predictedSeverity.charAt(0).toUpperCase() + predictedSeverity.slice(1)
+  const label = severity
+    ? severity.charAt(0).toUpperCase() + severity.slice(1)
     : "Unknown";
 
   return (

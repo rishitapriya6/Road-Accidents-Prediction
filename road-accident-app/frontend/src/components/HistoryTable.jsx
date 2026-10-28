@@ -52,8 +52,8 @@ export default function HistoryTable({ records, onDelete }) {
               <td>{r.weather}</td>
               <td>{r.cause}</td>
               <td>
-                <span className={`severity-badge ${badgeClass[r.predictedSeverity] || ""}`}>
-                  {r.predictedSeverity}
+                <span className={`severity-badge ${badgeClass[r.severity] || ""}`}>
+                  {r.severity}
                 </span>
               </td>
               <td>{r.createdAt ? new Date(r.createdAt).toLocaleDateString() : "—"}</td>

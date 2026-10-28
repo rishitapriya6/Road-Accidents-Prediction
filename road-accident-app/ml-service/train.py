@@ -26,8 +26,9 @@ from sklearn.metrics import (
     accuracy_score, classification_report, confusion_matrix, f1_score
 )
 from sklearn.model_selection import train_test_split
-from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
+from imblearn.pipeline import Pipeline as ImbPipeline
+from imblearn.over_sampling import RandomOverSampler
 
 # â”€â”€ Paths â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -51,9 +52,8 @@ CATEGORICAL_COLS = [
     "traffic_density", "cause"
 ]
 NUMERIC_COLS = [
-    "latitude", "longitude", "hour",
-    "is_weekend", "lanes", "traffic_signal",
-    "temperature", "is_peak_hour"
+    "hour", "is_weekend", "lanes",
+    "traffic_signal", "temperature", "is_peak_hour"
 ]
 FEATURE_COLS = CATEGORICAL_COLS + NUMERIC_COLS   # order matters for ColumnTransformer
 TARGET_COL = "accident_severity"
@@ -61,6 +61,14 @@ TARGET_COL = "accident_severity"
 # â”€â”€ Load data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 print("Loading data â€¦")
 df = pd.read_csv(DATA_PATH)
+print("\nSeverity by cause:")
+print(pd.crosstab(df["cause"], df["accident_severity"], normalize="index").round(3))
+
+print("\nSeverity by weather:")
+print(pd.crosstab(df["weather"], df["accident_severity"], normalize="index").round(3))
+
+print("\nSeverity by traffic density:")
+print(pd.crosstab(df["traffic_density"], df["accident_severity"], normalize="index").round(3))
 print(f"  Rows: {len(df)}, Columns: {len(df.columns)}")
 
 X = df[FEATURE_COLS]
@@ -77,8 +85,12 @@ print(f"\nSaved options.json â†’ {OPTIONS_PATH}")
 
 # â”€â”€ Train / test split â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.20, stratify=y, random_state=42
+    X, y,
+    test_size=0.20,
+    stratify=y,
+    random_state=42
 )
+
 print(f"\nTrain size: {len(X_train)}  Test size: {len(X_test)}")
 
 # â”€â”€ Preprocessor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -93,19 +105,27 @@ preprocessor = ColumnTransformer(
 )
 
 # â”€â”€ Main pipeline: preprocessor â†’ Random Forest â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-pipeline = Pipeline([
+
+# Main pipeline: preprocess -> oversample training data -> Random Forest
+pipeline = ImbPipeline([
     ("preprocessor", preprocessor),
+    ("oversampler", RandomOverSampler(random_state=42)),
     ("model", RandomForestClassifier(
         n_estimators=300,
         random_state=42,
-        class_weight="balanced",   # addresses class imbalance without dropping rows
+        class_weight=None,
+        min_samples_leaf=2,
+        max_features="sqrt",
         n_jobs=-1
     ))
 ])
 
-print("\nFitting Random Forest (300 trees, class_weight='balanced') â€¦")
+print("\nFitting Random Forest with RandomOverSampler...")
 pipeline.fit(X_train, y_train)
+
+# Predict on the original, untouched test set
 y_pred = pipeline.predict(X_test)
+
 
 # â”€â”€ Baseline: always predict the majority class â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 dummy = DummyClassifier(strategy="most_frequent", random_state=42)
@@ -200,6 +220,18 @@ ohe_feature_names = pipeline.named_steps["preprocessor"].named_transformers_["ca
 all_feature_names = list(ohe_feature_names) + NUMERIC_COLS
 
 importances = rf.feature_importances_
+# Print the 10 most important features
+importance_df = pd.DataFrame({
+    "Feature": all_feature_names,
+    "Importance": importances
+})
+
+print("\nTOP 10 IMPORTANT FEATURES:")
+print(
+    importance_df.sort_values(
+        by="Importance", ascending=False
+    ).head(10).to_string(index=False)
+)
 indices = np.argsort(importances)[::-1][:10]
 
 fig, ax = plt.subplots(figsize=(9, 5))

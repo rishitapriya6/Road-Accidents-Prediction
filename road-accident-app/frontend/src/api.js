@@ -4,7 +4,7 @@
  * Change BASE_URL here if the backend runs on a different host/port.
  */
 
-export const BASE_URL = "http://localhost:8080/api";
+export const BASE_URL = "http://localhost:5000/api";
 
 /** POST /api/predictions — submit a new accident for prediction */
 export async function createPrediction(data) {

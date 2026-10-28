@@ -35,7 +35,7 @@ FEATURE_COLS = CATEGORICAL_COLS + NUMERIC_COLS
 app = Flask(__name__)
 CORS(app)   # allow cross-origin requests (needed when backend calls this from Java)
 
-@app.get("/health")
+@app.get("/")
 def health():
     """Simple health-check endpoint."""
     return jsonify({"status": "ok", "model": "RandomForest"})
@@ -72,4 +72,4 @@ def predict():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=8000, debug=False)

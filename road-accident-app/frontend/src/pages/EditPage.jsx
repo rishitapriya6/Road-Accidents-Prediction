@@ -27,5 +27,5 @@ export default function EditPage() {
   if (error)   return <main style={{ padding: "2rem" }}><div className="alert alert-error">{error}</div></main>;
 
   // Reuse PredictPage with editId and initialData (the same controlled form)
-  return <PredictPage editId={parseInt(id)} initialData={prediction} />;
+  return <PredictPage editId={id} initialData={prediction} />;
 }
