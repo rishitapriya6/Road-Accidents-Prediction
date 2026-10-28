@@ -23,11 +23,16 @@ export default function FormField({ id, label, type = "text", value, onChange, o
           className={`form-select ${error ? "input-error" : ""}`}
           value={value}
           onChange={onChange}
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? `${id}-error` : undefined}
+          aria-required={Boolean(rest.required)}
           {...rest}
         >
-          <option value="">-- select --</option>
+          <option value="">Select</option>
           {options.map((opt) => (
-            <option key={opt} value={opt}>{opt}</option>
+            <option key={opt} value={opt}>
+              {opt.charAt(0).toUpperCase() + opt.slice(1).toLowerCase()}
+            </option>
           ))}
         </select>
       ) : (
@@ -38,10 +43,13 @@ export default function FormField({ id, label, type = "text", value, onChange, o
           className={`form-input ${error ? "input-error" : ""}`}
           value={value}
           onChange={onChange}
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? `${id}-error` : undefined}
+          aria-required={Boolean(rest.required)}
           {...rest}
         />
       )}
-      {error && <span className="field-error">{error}</span>}
+      {error && <span id={`${id}-error`} className="field-error">{error}</span>}
     </div>
   );
 }

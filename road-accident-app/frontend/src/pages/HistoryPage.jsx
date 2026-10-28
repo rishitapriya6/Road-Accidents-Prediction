@@ -16,17 +16,28 @@ export default function HistoryPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const severity = searchParams.get("severity") || "";
 
-  const [records, setRecords] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [result, setResult] = useState({
+    severity: null,
+    records: [],
+    error: "",
+  });
+  const loading = result.severity !== severity;
+  const records = loading ? [] : result.records;
+  const error = loading ? "" : result.error;
 
   // Re-fetch whenever the severity filter changes
   useEffect(() => {
-    setLoading(true);
+    let active = true;
     fetchPredictions(severity)
-      .then(setRecords)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+      .then((data) => {
+        if (active) setResult({ severity, records: data, error: "" });
+      })
+      .catch((err) => {
+        if (active) setResult({ severity, records: [], error: err.message });
+      });
+    return () => {
+      active = false;
+    };
   }, [severity]);
 
   // Called by FilterDropdown when the user changes the filter
@@ -40,7 +51,10 @@ export default function HistoryPage() {
 
   // Called by HistoryTable after a successful delete to remove the row locally
   function handleDelete(deletedId) {
-    setRecords((prev) => prev.filter((r) => r.id !== deletedId));
+    setResult((previous) => ({
+      ...previous,
+      records: previous.records.filter((record) => record.id !== deletedId),
+    }));
   }
 
   return (
@@ -50,7 +64,7 @@ export default function HistoryPage() {
         <p className="subtitle">Browse, filter, edit or delete past predictions.</p>
       </section>
 
-      <FilterDropdown value={severity} onChange={handleFilterChange} />
+      <FilterDropdown key={severity} value={severity} onChange={handleFilterChange} />
 
       {error   && <div className="alert alert-error">{error}</div>}
       {loading && <p className="loading">Loading records…</p>}

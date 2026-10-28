@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
+import DashboardPage from "./pages/DashboardPage";
 import PredictPage from "./pages/PredictPage";
 import ResultPage from "./pages/ResultPage";
 import HistoryPage from "./pages/HistoryPage";
@@ -24,29 +25,27 @@ export default function App() {
   return (
     <BrowserRouter>
       <Navbar />
-      <Routes>
-        {/* ── Main pages ── */}
-        <Route path="/"               element={<PredictPage />} />
-        <Route path="/result/:id"     element={<ResultPage />} />
-        <Route path="/history"        element={<HistoryPage />} />
-        <Route path="/history/:id/edit" element={<EditPage />} />
+      <div className="app-content">
+        <Routes>
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/" element={<PredictPage />} />
+          <Route path="/result/:id" element={<ResultPage />} />
+          <Route path="/history" element={<HistoryPage />} />
+          <Route path="/history/:id/edit" element={<EditPage />} />
 
-        {/* ── Model Info with nested routes ── */}
-        <Route path="/model" element={<ModelInfoPage />}>
-          {/* Redirect /model → /model/metrics by default */}
-          <Route index element={<Navigate to="metrics" replace />} />
-          <Route path="metrics"     element={<MetricsView />} />
-          <Route path="eda"         element={<EdaView />} />
-          <Route path="limitations" element={<LimitationsView />} />
-        </Route>
+          <Route path="/model" element={<ModelInfoPage />}>
+            <Route index element={<Navigate to="metrics" replace />} />
+            <Route path="metrics" element={<MetricsView />} />
+            <Route path="eda" element={<EdaView />} />
+            <Route path="limitations" element={<LimitationsView />} />
+          </Route>
 
-        {/* ── 404 ── */}
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
-
-      <footer className="app-footer">
-        <p>RoadSafe AI — B.Tech (AI &amp; ML) Academic Project. Not for safety-critical use.</p>
-      </footer>
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+        <footer className="app-footer">
+          <p>RoadSafe AI · Academic project · Not for safety-critical use</p>
+        </footer>
+      </div>
     </BrowserRouter>
   );
 }

@@ -53,22 +53,41 @@ export function MetricsView() {
   if (!metrics) return null;
 
   const classes = ["minor", "major", "fatal"];
-  const { matrix, labels } = metrics.confusion_matrix;
 
   return (
     <div className="metrics-view">
       {/* Overall metrics */}
       <h2 className="section-title">Overall Performance</h2>
-      <table className="metrics-table">
-        <thead><tr><th>Metric</th><th>Model</th><th>Baseline (always Minor)</th></tr></thead>
-        <tbody>
-          <tr><td>Accuracy</td>         <td>{(metrics.accuracy * 100).toFixed(1)}%</td>        <td>{(metrics.baseline_accuracy * 100).toFixed(1)}%</td></tr>
-          <tr><td>Macro Precision</td>  <td>{metrics.macro_precision.toFixed(3)}</td>           <td>—</td></tr>
-          <tr><td>Macro Recall</td>     <td>{metrics.macro_recall.toFixed(3)}</td>              <td>—</td></tr>
-          <tr><td>Macro F1</td>         <td>{metrics.macro_f1.toFixed(3)}</td>                  <td>{metrics.baseline_macro_f1.toFixed(3)}</td></tr>
-          <tr><td>Weighted F1</td>      <td>{metrics.weighted_f1.toFixed(3)}</td>               <td>—</td></tr>
-        </tbody>
-      </table>
+      <p className="metrics-note">
+        Evaluated on a stratified holdout set. The majority baseline always predicts Minor.
+      </p>
+      <div className="model-metric-cards">
+        <article className="model-metric-card">
+          <span>Accuracy</span>
+          <strong>{(metrics.accuracy * 100).toFixed(1)}%</strong>
+          <small>Majority baseline {(metrics.baseline_accuracy * 100).toFixed(1)}%</small>
+        </article>
+        <article className="model-metric-card">
+          <span>Macro F1</span>
+          <strong>{metrics.macro_f1.toFixed(3)}</strong>
+          <small>Majority baseline {metrics.baseline_macro_f1.toFixed(3)}</small>
+        </article>
+        <article className="model-metric-card">
+          <span>Macro precision</span>
+          <strong>{metrics.macro_precision.toFixed(3)}</strong>
+          <small>Equal weight per class</small>
+        </article>
+        <article className="model-metric-card">
+          <span>Macro recall</span>
+          <strong>{metrics.macro_recall.toFixed(3)}</strong>
+          <small>Equal weight per class</small>
+        </article>
+        <article className="model-metric-card">
+          <span>Weighted F1</span>
+          <strong>{metrics.weighted_f1.toFixed(3)}</strong>
+          <small>Weighted by class support</small>
+        </article>
+      </div>
 
       {/* Per-class metrics */}
       <h2 className="section-title">Per-Class Metrics</h2>
@@ -114,19 +133,18 @@ export function EdaView() {
 /* ── LimitationsView ─────────────────────────────────────────────────────── */
 export function LimitationsView() {
   const items = [
-    "Classes are imbalanced (about 55% Minor, 30% Major, 15% Fatal).",
-    "Fatal recall is 0% on the test set, so the model is unsuitable for safety-critical use.",
-    "Accuracy (about 53.8%) is slightly below always predicting Minor (about 55.1%).",
-    "Weather and road type show almost identical severity distributions, so predictors are weakly related to severity.",
-    "Single 80:20 hold-out split, no cross-validation, no tuning in the default model.",
-    "Dataset origin and labelling are undocumented; labels may not match official MoRTH categories.",
-    "Impurity-based feature importance favours continuous variables.",
+    "The dataset is imbalanced: roughly 55% Minor, 30% Major, and 15% Fatal.",
+    "On the reported holdout, Fatal recall is 4.9%, meaning most Fatal cases were missed. This model is not suitable for safety-critical decisions.",
+    "Accuracy is 46.5%, below the 55.1% majority-class baseline, although macro-F1 (0.314) is higher than the baseline (0.237).",
+    "The available pre-outcome inputs show weak relationships with severity; improving the model likely requires more informative features or better-labeled data.",
+    "Evaluation uses a single stratified 80/20 holdout. Cross-validation comparisons are available in the ML training report but do not replace independent validation.",
+    "The dataset origin and label-generation process are undocumented, so representativeness and label validity cannot be established.",
   ];
 
   return (
     <div className="limitations-view">
       <h2 className="section-title">Known Limitations</h2>
-      <div className="disclaimer" style={{ marginBottom: "1rem" }}>
+      <div className="disclaimer">
         ⚠️ This model is a baseline for academic study only. Do NOT use for safety-critical decisions.
       </div>
       <ul className="limitations-list">

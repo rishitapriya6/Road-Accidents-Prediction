@@ -1,114 +1,262 @@
-/* ── Global styles for Road Accident Severity Prediction App ── */
+:root {
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+  color: #29232a;
+  background: #fff5f2;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 
-/* Google Font */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  --burgundy: #432332;
+  --rose: #b96e79;
+  --rose-dark: #8d4a57;
+  --blush: #e8bfc3;
+  --background: #fff5f2;
+  --surface: #ffffff;
+  --text: #29232a;
+  --muted: #71666d;
+  --border: #e8dde0;
+  --highlight: #f9e9ec;
+  --minor: #247044;
+  --minor-bg: #e5f3e9;
+  --major: #925400;
+  --major-bg: #fff1d8;
+  --fatal: #a52e38;
+  --fatal-bg: #fbe7e8;
+  --sidebar-width: 248px;
+  --shadow-card: 0 2px 12px rgba(67, 35, 50, 0.055);
+}
 
-/* ── CSS Reset & Base ── */
 *, *::before, *::after {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+}
+
+html {
+  min-width: 320px;
+  min-height: 100%;
+  background: var(--background);
 }
 
 body {
-  font-family: 'Inter', system-ui, sans-serif;
-  background: #f0f2ff;
-  color: #222;
+  min-width: 320px;
   min-height: 100vh;
-  line-height: 1.6;
+  margin: 0;
+  line-height: 1.55;
+  background: var(--background);
+  color: var(--text);
 }
 
-/* ── Typography ── */
-h1, h2, h3 { line-height: 1.3; }
+button, input, select {
+  font: inherit;
+}
 
-/* ── Utility: Loading & Alerts ── */
-.loading {
-  color: #888;
-  padding: 1.5rem 0;
+button, a, input, select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a {
+  color: var(--rose-dark);
+}
+
+:focus-visible {
+  outline: 3px solid var(--rose);
+  outline-offset: 3px;
+}
+
+h1, h2, h3, h4, p {
+  margin-top: 0;
+}
+
+h1, h2, h3 {
+  line-height: 1.3;
+  color: var(--burgundy);
+}
+
+.app-content {
+  min-width: 0;
+  min-height: 100vh;
+  margin-left: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+}
+
+.page-header {
+  margin-bottom: 1.6rem;
+}
+
+.page-header h1 {
+  margin-bottom: 0.35rem;
+  font-size: clamp(1.55rem, 2.2vw, 2rem);
+  letter-spacing: -0.035em;
+}
+
+.subtitle {
+  margin-bottom: 0;
+  color: var(--muted);
   font-size: 0.95rem;
 }
 
+.loading {
+  padding: 1.25rem 0;
+  color: var(--muted);
+}
+
 .alert {
-  padding: 0.9rem 1.2rem;
-  border-radius: 8px;
   margin-bottom: 1rem;
-  font-size: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  font-size: 0.92rem;
 }
 
 .alert-error {
-  background: #ffebee;
-  border-left: 4px solid #e53935;
-  color: #b71c1c;
+  border-color: #efc3c6;
+  background: #fff0f1;
+  color: #84232c;
 }
 
 .alert-success {
-  background: #e8f5e9;
-  border-left: 4px solid #43a047;
-  color: #1b5e20;
+  border-color: #cce5d2;
+  background: var(--minor-bg);
+  color: #195936;
 }
 
-/* ── Buttons ── */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.55rem 1.2rem;
-  border-radius: 8px;
-  border: none;
+  gap: 0.45rem;
+  min-height: 40px;
+  padding: 0.55rem 1rem;
+  border: 1px solid transparent;
+  border-radius: 9px;
   cursor: pointer;
   font-size: 0.9rem;
-  font-weight: 600;
-  font-family: inherit;
+  font-weight: 650;
+  line-height: 1.2;
   text-decoration: none;
-  transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
+  transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease;
 }
 
-.btn:hover   { opacity: 0.88; transform: translateY(-1px); }
-.btn:active  { transform: translateY(0); }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
 
-.btn-primary   { background: #1a237e; color: #fff; box-shadow: 0 2px 6px rgba(26,35,126,0.3); }
-.btn-secondary { background: #e8eaf6; color: #1a237e; }
-.btn-edit      { background: #e3f2fd; color: #0d47a1; }
-.btn-delete    { background: #ffebee; color: #c62828; }
-.btn-view      { background: #e8f5e9; color: #1b5e20; }
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
 
-.btn-lg { padding: 0.75rem 2rem; font-size: 1rem; }
+.btn-primary {
+  background: var(--rose-dark);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--burgundy);
+}
+
+.btn-secondary {
+  border-color: var(--border);
+  background: #fff;
+  color: var(--burgundy);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--highlight);
+}
+
+.btn-edit {
+  background: #f5e8ec;
+  color: #713e50;
+}
+
+.btn-delete {
+  background: var(--fatal-bg);
+  color: #84232c;
+}
+
+.btn-view {
+  background: var(--minor-bg);
+  color: #195936;
+}
+
+.btn-lg {
+  min-height: 48px;
+  padding: 0.75rem 1.4rem;
+  font-size: 0.98rem;
+}
 
 .btn-sm {
-  padding: 0.3rem 0.65rem;
+  min-height: 32px;
+  padding: 0.35rem 0.65rem;
+  border-radius: 7px;
   font-size: 0.78rem;
-  border-radius: 6px;
 }
 
-/* ── Page header (shared) ── */
-.page-header {
-  margin-bottom: 1.5rem;
+.severity-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  white-space: nowrap;
 }
 
-.page-header h1 {
-  font-size: 1.7rem;
-  color: #1a237e;
-  margin-bottom: 0.3rem;
+.badge-minor {
+  background: var(--minor-bg);
+  color: var(--minor);
 }
 
-.subtitle {
-  color: #666;
-  font-size: 0.92rem;
+.badge-major {
+  background: var(--major-bg);
+  color: var(--major);
 }
 
-/* ── Footer ── */
+.badge-fatal {
+  background: var(--fatal-bg);
+  color: var(--fatal);
+}
+
 .app-footer {
+  margin-top: auto;
+  padding: 1.2rem 1.5rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.78rem;
   text-align: center;
-  padding: 1.5rem;
-  color: #999;
-  font-size: 0.8rem;
-  border-top: 1px solid #e0e0e0;
-  margin-top: 3rem;
-  background: #fff;
 }
 
-/* ── Scrollbar (aesthetic) ── */
-::-webkit-scrollbar       { width: 7px; height: 7px; }
-::-webkit-scrollbar-track { background: #f0f2ff; }
-::-webkit-scrollbar-thumb { background: #9fa8da; border-radius: 4px; }
+.app-footer p {
+  margin: 0;
+}
+
+.empty-state {
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 2rem 1.25rem;
+  background: var(--surface);
+  color: var(--muted);
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  :root {
+    --sidebar-width: 0px;
+  }
+
+  .app-content {
+    margin-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

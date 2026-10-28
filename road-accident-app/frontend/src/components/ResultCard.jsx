@@ -41,7 +41,7 @@ export default function ResultCard({ prediction }) {
 
       {/* Permanent disclaimer as required */}
       <div className="disclaimer">
-        ⚠️ Baseline model. Fatal recall on the test set was 0%. Not suitable for safety-critical use.
+        Model estimates are experimental. Fatal recall was 4.9% on the reported holdout; this prediction is not safety guidance.
       </div>
     </div>
   );

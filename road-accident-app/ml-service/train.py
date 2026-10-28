@@ -1,263 +1,346 @@
-﻿"""
-train.py â€” Road Accident Severity Prediction
-B.Tech (AI & ML) Academic Case Study
-
-Trains a Random Forest classifier on the indian_roads_dataset.csv.
-Target: accident_severity (minor / major / fatal)
-16 input features: see FEATURE_COLS below.
-"""
+"""Compare and safely train road-accident severity models."""
 
 import json
 import os
-import sys
+import shutil
+import tempfile
+from datetime import datetime
 
 import joblib
-import matplotlib
-matplotlib.use("Agg")          # non-interactive backend (no display needed)
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
-
+from imblearn.over_sampling import RandomOverSampler
+from imblearn.pipeline import Pipeline as ImbPipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.dummy import DummyClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import (
-    accuracy_score, classification_report, confusion_matrix, f1_score
-)
-from sklearn.model_selection import train_test_split
+from sklearn.ensemble import ExtraTreesClassifier, HistGradientBoostingClassifier, RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score
+from sklearn.model_selection import StratifiedKFold, cross_validate, train_test_split
 from sklearn.preprocessing import OneHotEncoder
-from imblearn.pipeline import Pipeline as ImbPipeline
-from imblearn.over_sampling import RandomOverSampler
 
-# â”€â”€ Paths â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-DATA_PATH   = os.path.join(ROOT, "indian_roads_dataset.csv")
+DATA_PATH = os.path.join(ROOT, "indian_roads_dataset.csv")
 REPORTS_DIR = os.path.join(ROOT, "road-accident-app", "reports")
-MODEL_PATH  = os.path.join(os.path.dirname(__file__), "model.joblib")
-OPTIONS_PATH = os.path.join(os.path.dirname(__file__), "options.json")
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "model.joblib")
+COMPARISON_PATH = os.path.join(REPORTS_DIR, "model_comparison.json")
 
-os.makedirs(REPORTS_DIR, exist_ok=True)
-
-# â”€â”€ Feature definitions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-# We use exactly 16 features. The following are EXCLUDED to avoid data leakage
-# or because they are too sparse to be useful:
-#   - vehicles_involved: outcome-correlated proxy (post-accident count)
-#   - casualties:        direct outcome measure â€” pure leakage
-#   - risk_score:        computed from the target, not an independent predictor
-#   - festival:          ~99.4% missing; encoding would introduce noise
 CATEGORICAL_COLS = [
     "city", "state", "day_of_week",
     "road_type", "weather", "visibility",
-    "traffic_density", "cause"
+    "traffic_density", "cause",
 ]
 NUMERIC_COLS = [
     "hour", "is_weekend", "lanes",
-    "traffic_signal", "temperature", "is_peak_hour"
+    "traffic_signal", "temperature", "is_peak_hour",
 ]
-FEATURE_COLS = CATEGORICAL_COLS + NUMERIC_COLS   # order matters for ColumnTransformer
+FEATURE_COLS = CATEGORICAL_COLS + NUMERIC_COLS
+SERVING_FEATURE_COLS = CATEGORICAL_COLS + [
+    "latitude", "longitude",
+] + NUMERIC_COLS
 TARGET_COL = "accident_severity"
-
-# â”€â”€ Load data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-print("Loading data â€¦")
-df = pd.read_csv(DATA_PATH)
-print("\nSeverity by cause:")
-print(pd.crosstab(df["cause"], df["accident_severity"], normalize="index").round(3))
-
-print("\nSeverity by weather:")
-print(pd.crosstab(df["weather"], df["accident_severity"], normalize="index").round(3))
-
-print("\nSeverity by traffic density:")
-print(pd.crosstab(df["traffic_density"], df["accident_severity"], normalize="index").round(3))
-print(f"  Rows: {len(df)}, Columns: {len(df.columns)}")
-
-X = df[FEATURE_COLS]
-y = df[TARGET_COL]
-
-print("\nClass distribution:")
-print(y.value_counts())
-
-# â”€â”€ Save options.json for the frontend dropdown menus â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-options = {col: sorted(df[col].dropna().unique().tolist()) for col in CATEGORICAL_COLS}
-with open(OPTIONS_PATH, "w") as f:
-    json.dump(options, f, indent=2)
-print(f"\nSaved options.json â†’ {OPTIONS_PATH}")
-
-# â”€â”€ Train / test split â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y,
-    test_size=0.20,
-    stratify=y,
-    random_state=42
-)
-
-print(f"\nTrain size: {len(X_train)}  Test size: {len(X_test)}")
-
-# â”€â”€ Preprocessor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-# OneHotEncoder with handle_unknown="ignore" so unseen categories at inference
-# do not crash the pipeline.  sparse_output=False gives a dense array.
-# No scaling: Random Forest is invariant to monotone transformations of features.
-preprocessor = ColumnTransformer(
-    transformers=[
-        ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=False), CATEGORICAL_COLS)
-    ],
-    remainder="passthrough"   # pass numeric columns through unchanged
-)
-
-# â”€â”€ Main pipeline: preprocessor â†’ Random Forest â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-# Main pipeline: preprocess -> oversample training data -> Random Forest
-pipeline = ImbPipeline([
-    ("preprocessor", preprocessor),
-    ("oversampler", RandomOverSampler(random_state=42)),
-    ("model", RandomForestClassifier(
-        n_estimators=300,
-        random_state=42,
-        class_weight=None,
-        min_samples_leaf=2,
-        max_features="sqrt",
-        n_jobs=-1
-    ))
-])
-
-print("\nFitting Random Forest with RandomOverSampler...")
-pipeline.fit(X_train, y_train)
-
-# Predict on the original, untouched test set
-y_pred = pipeline.predict(X_test)
+LABELS = ["minor", "major", "fatal"]
+RANDOM_STATE = 42
 
 
-# â”€â”€ Baseline: always predict the majority class â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-dummy = DummyClassifier(strategy="most_frequent", random_state=42)
-dummy.fit(X_train, y_train)
-y_dummy = dummy.predict(X_test)
+def build_preprocessor():
+    return ColumnTransformer(
+        transformers=[
+            (
+                "cat",
+                OneHotEncoder(handle_unknown="ignore", sparse_output=False),
+                CATEGORICAL_COLS,
+            )
+        ],
+        remainder="passthrough",
+    )
 
-acc_model   = accuracy_score(y_test, y_pred)
-acc_baseline = accuracy_score(y_test, y_dummy)
 
-report_dict = classification_report(y_test, y_pred, output_dict=True)
-report_str  = classification_report(y_test, y_pred)
-
-macro_f1_model    = f1_score(y_test, y_pred,  average="macro")
-macro_f1_baseline = f1_score(y_test, y_dummy, average="macro")
-
-# Fatal recall (class "fatal")
-fatal_recall_model    = report_dict.get("fatal", {}).get("recall", 0.0)
-fatal_recall_baseline = classification_report(y_test, y_dummy, output_dict=True).get("fatal", {}).get("recall", 0.0)
-
-print("\n" + "="*60)
-print("MODEL RESULTS")
-print("="*60)
-print(f"Accuracy : {acc_model:.4f}")
-print(report_str)
-print("Confusion Matrix:")
-print(confusion_matrix(y_test, y_pred, labels=["minor", "major", "fatal"]))
-
-print("\n" + "="*60)
-print("BASELINE (majority-class DummyClassifier)")
-print("="*60)
-print(f"Accuracy  : {acc_baseline:.4f}")
-print(f"Macro-F1  : {macro_f1_baseline:.4f}")
-print(f"Fatal recall: {fatal_recall_baseline:.4f}")
-
-print("\n" + "="*60)
-print("COMPARISON SUMMARY")
-print("="*60)
-print(f"{'Metric':<20} {'Model':>10} {'Baseline':>10}")
-print(f"{'Accuracy':<20} {acc_model:>10.4f} {acc_baseline:>10.4f}")
-print(f"{'Macro-F1':<20} {macro_f1_model:>10.4f} {macro_f1_baseline:>10.4f}")
-print(f"{'Fatal Recall':<20} {fatal_recall_model:>10.4f} {fatal_recall_baseline:>10.4f}")
-
-# â”€â”€ Save model â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-joblib.dump(pipeline, MODEL_PATH)
-print(f"\nModel saved â†’ {MODEL_PATH}")
-
-# â”€â”€ Save metrics.json â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-cm = confusion_matrix(y_test, y_pred, labels=["minor", "major", "fatal"])
-metrics = {
-    "accuracy": round(acc_model, 4),
-    "macro_precision": round(report_dict["macro avg"]["precision"], 4),
-    "macro_recall":    round(report_dict["macro avg"]["recall"], 4),
-    "macro_f1":        round(report_dict["macro avg"]["f1-score"], 4),
-    "weighted_f1":     round(report_dict["weighted avg"]["f1-score"], 4),
-    "per_class": {
-        cls: {
-            "precision": round(report_dict[cls]["precision"], 4),
-            "recall":    round(report_dict[cls]["recall"], 4),
-            "f1":        round(report_dict[cls]["f1-score"], 4),
-            "support":   int(report_dict[cls]["support"])
-        }
-        for cls in ["minor", "major", "fatal"]
-    },
-    "baseline_accuracy": round(acc_baseline, 4),
-    "baseline_macro_f1": round(macro_f1_baseline, 4),
-    "confusion_matrix": {
-        "labels": ["minor", "major", "fatal"],
-        "matrix": cm.tolist()
+def build_candidates():
+    return {
+        "RandomForest + ROS": ImbPipeline([
+            ("preprocessor", build_preprocessor()),
+            ("oversampler", RandomOverSampler(random_state=RANDOM_STATE)),
+            ("model", RandomForestClassifier(
+                n_estimators=300,
+                random_state=RANDOM_STATE,
+                min_samples_leaf=2,
+                max_features="sqrt",
+                n_jobs=-1,
+            )),
+        ]),
+        "RandomForest": ImbPipeline([
+            ("preprocessor", build_preprocessor()),
+            ("model", RandomForestClassifier(
+                n_estimators=300,
+                random_state=RANDOM_STATE,
+                min_samples_leaf=2,
+                max_features="sqrt",
+                n_jobs=-1,
+            )),
+        ]),
+        "ExtraTrees": ImbPipeline([
+            ("preprocessor", build_preprocessor()),
+            ("model", ExtraTreesClassifier(
+                n_estimators=300,
+                random_state=RANDOM_STATE,
+                min_samples_leaf=2,
+                max_features="sqrt",
+                n_jobs=-1,
+            )),
+        ]),
+        "HistGradientBoosting": ImbPipeline([
+            ("preprocessor", build_preprocessor()),
+            ("model", HistGradientBoostingClassifier(
+                max_iter=150,
+                learning_rate=0.08,
+                l2_regularization=1.0,
+                class_weight="balanced",
+                random_state=RANDOM_STATE,
+            )),
+        ]),
     }
-}
-metrics_path = os.path.join(REPORTS_DIR, "metrics.json")
-with open(metrics_path, "w") as f:
-    json.dump(metrics, f, indent=2)
-print(f"Saved metrics.json â†’ {metrics_path}")
 
-# â”€â”€ Plot: Confusion Matrix â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-fig, ax = plt.subplots(figsize=(6, 5))
-sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
-            xticklabels=["minor", "major", "fatal"],
-            yticklabels=["minor", "major", "fatal"], ax=ax)
-ax.set_title("Confusion Matrix (Random Forest)")
-ax.set_xlabel("Predicted")
-ax.set_ylabel("Actual")
-plt.tight_layout()
-plt.savefig(os.path.join(REPORTS_DIR, "confusion_matrix.png"), dpi=150)
-plt.close()
-print("Saved confusion_matrix.png")
 
-# â”€â”€ Plot: Feature Importance (top 10) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-rf = pipeline.named_steps["model"]
-ohe_feature_names = pipeline.named_steps["preprocessor"].named_transformers_["cat"].get_feature_names_out(CATEGORICAL_COLS)
-all_feature_names = list(ohe_feature_names) + NUMERIC_COLS
+def measure(estimator, X, y):
+    predictions = estimator.predict(X)
+    class_report = classification_report(
+        y,
+        predictions,
+        labels=LABELS,
+        output_dict=True,
+        zero_division=0,
+    )
+    return {
+        "accuracy": float(accuracy_score(y, predictions)),
+        "macro_f1": float(f1_score(y, predictions, average="macro")),
+        "per_class": {
+            label: {
+                "precision": float(class_report[label]["precision"]),
+                "recall": float(class_report[label]["recall"]),
+                "f1": float(class_report[label]["f1-score"]),
+                "support": int(class_report[label]["support"]),
+            }
+            for label in LABELS
+        },
+        "confusion_matrix": confusion_matrix(
+            y, predictions, labels=LABELS
+        ).tolist(),
+    }
 
-importances = rf.feature_importances_
-# Print the 10 most important features
-importance_df = pd.DataFrame({
-    "Feature": all_feature_names,
-    "Importance": importances
-})
 
-print("\nTOP 10 IMPORTANT FEATURES:")
-print(
-    importance_df.sort_values(
-        by="Importance", ascending=False
-    ).head(10).to_string(index=False)
-)
-indices = np.argsort(importances)[::-1][:10]
+def validate_serving_compatibility(estimator, serving_row):
+    expected_names = getattr(estimator, "feature_names_in_", None)
+    if expected_names is None or list(expected_names) != FEATURE_COLS:
+        raise ValueError(
+            "Model input feature names do not match the ML service's trained features."
+        )
 
-fig, ax = plt.subplots(figsize=(9, 5))
-ax.barh([all_feature_names[i] for i in indices][::-1],
-        importances[indices][::-1], color="steelblue")
-ax.set_title("Top-10 Feature Importances (impurity-based)")
-ax.set_xlabel("Mean Decrease in Impurity")
-plt.tight_layout()
-plt.savefig(os.path.join(REPORTS_DIR, "feature_importance.png"), dpi=150)
-plt.close()
-print("Saved feature_importance.png")
+    prediction = estimator.predict(serving_row)
+    probabilities = estimator.predict_proba(serving_row)
+    if len(prediction) != 1 or prediction[0] not in LABELS:
+        raise ValueError("Model returned an invalid severity label.")
+    if probabilities.shape != (1, len(LABELS)):
+        raise ValueError("Model returned an incompatible probability shape.")
+    if not np.isfinite(probabilities).all() or not np.isclose(
+        probabilities.sum(), 1.0, atol=1e-6
+    ):
+        raise ValueError("Model returned invalid class probabilities.")
 
-# â”€â”€ Plot: Class Distribution â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-counts = y.value_counts().reindex(["minor", "major", "fatal"])
-colors = ["#2ecc71", "#f39c12", "#e74c3c"]
-fig, ax = plt.subplots(figsize=(6, 4))
-bars = ax.bar(counts.index, counts.values, color=colors, edgecolor="white")
-for bar, count in zip(bars, counts.values):
-    ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 50,
-            f"{count} ({count/len(y)*100:.1f}%)", ha="center", fontsize=10)
-ax.set_title("Class Distribution â€” accident_severity")
-ax.set_ylabel("Count")
-ax.set_ylim(0, counts.max() * 1.15)
-plt.tight_layout()
-plt.savefig(os.path.join(REPORTS_DIR, "class_distribution.png"), dpi=150)
-plt.close()
-print("Saved class_distribution.png")
 
-print("\nTraining complete.")
+def write_report(report):
+    os.makedirs(REPORTS_DIR, exist_ok=True)
+    with open(COMPARISON_PATH, "w", encoding="utf-8") as file:
+        json.dump(report, file, indent=2)
+
+
+def promote_model(candidate, X, y, serving_row):
+    candidate.fit(X, y)
+    validate_serving_compatibility(candidate, serving_row)
+
+    file_descriptor, temporary_path = tempfile.mkstemp(
+        prefix=".model_candidate_",
+        suffix=".joblib",
+        dir=os.path.dirname(MODEL_PATH),
+    )
+    os.close(file_descriptor)
+    try:
+        joblib.dump(candidate, temporary_path)
+        verified_model = joblib.load(temporary_path)
+        validate_serving_compatibility(verified_model, serving_row)
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_path = os.path.join(
+            os.path.dirname(MODEL_PATH),
+            f"model_before_training_{timestamp}.joblib",
+        )
+        while os.path.exists(backup_path):
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+            backup_path = os.path.join(
+                os.path.dirname(MODEL_PATH),
+                f"model_before_training_{timestamp}.joblib",
+            )
+
+        shutil.copy2(MODEL_PATH, backup_path)
+        os.replace(temporary_path, MODEL_PATH)
+    finally:
+        if os.path.exists(temporary_path):
+            os.remove(temporary_path)
+
+    return backup_path
+
+
+def main():
+    df = pd.read_csv(DATA_PATH)
+    required_columns = set(FEATURE_COLS + SERVING_FEATURE_COLS + [TARGET_COL])
+    missing_columns = sorted(required_columns.difference(df.columns))
+    if missing_columns:
+        raise ValueError(f"Dataset is missing required columns: {missing_columns}")
+    if df[FEATURE_COLS + [TARGET_COL]].isna().any().any():
+        raise ValueError("Dataset contains missing values in model features or target.")
+    if set(df[TARGET_COL].unique()) != set(LABELS):
+        raise ValueError(f"Unexpected target labels: {sorted(df[TARGET_COL].unique())}")
+
+    X = df[FEATURE_COLS]
+    y = df[TARGET_COL]
+    X_train, X_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=0.20,
+        stratify=y,
+        random_state=RANDOM_STATE,
+    )
+    serving_test = df.loc[X_test.index, SERVING_FEATURE_COLS]
+    serving_sample = serving_test.iloc[[0]]
+
+    incumbent = joblib.load(MODEL_PATH)
+    validate_serving_compatibility(incumbent, serving_sample)
+    incumbent_test = measure(incumbent, serving_test, y_test)
+
+    dummy = DummyClassifier(strategy="most_frequent", random_state=RANDOM_STATE)
+    dummy.fit(X_train, y_train)
+    baseline_test = measure(dummy, X_test, y_test)
+
+    cv = StratifiedKFold(
+        n_splits=5,
+        shuffle=True,
+        random_state=RANDOM_STATE,
+    )
+    candidates = build_candidates()
+    candidate_results = {}
+    fitted_candidates = {}
+
+    print(f"Dataset: {len(df)} rows; train: {len(X_train)}; holdout: {len(X_test)}")
+    print("Cross-validating candidates on training folds only...")
+    for name, candidate in candidates.items():
+        cv_scores = cross_validate(
+            candidate,
+            X_train,
+            y_train,
+            cv=cv,
+            scoring={"macro_f1": "f1_macro", "accuracy": "accuracy"},
+            n_jobs=1,
+            return_train_score=False,
+        )
+        candidate.fit(X_train, y_train)
+        fitted_candidates[name] = candidate
+        candidate_results[name] = {
+            "cv_macro_f1_mean": float(cv_scores["test_macro_f1"].mean()),
+            "cv_macro_f1_std": float(cv_scores["test_macro_f1"].std()),
+            "cv_accuracy_mean": float(cv_scores["test_accuracy"].mean()),
+            "cv_accuracy_std": float(cv_scores["test_accuracy"].std()),
+            "holdout": measure(candidate, X_test, y_test),
+        }
+        print(
+            f"  {name}: CV macro-F1 "
+            f"{candidate_results[name]['cv_macro_f1_mean']:.4f} "
+            f"+/- {candidate_results[name]['cv_macro_f1_std']:.4f}; "
+            f"holdout macro-F1 {candidate_results[name]['holdout']['macro_f1']:.4f}"
+        )
+
+    selected_name = max(
+        candidate_results,
+        key=lambda name: candidate_results[name]["cv_macro_f1_mean"],
+    )
+    selected = candidate_results[selected_name]
+    incumbent_cv = candidate_results["RandomForest + ROS"]["cv_macro_f1_mean"]
+    promotion = {
+        "promoted": False,
+        "reason": (
+            "No candidate improved both training-fold CV macro-F1 over the "
+            "incumbent algorithm and holdout macro-F1 over the incumbent."
+        ),
+        "backup_path": None,
+    }
+    if (
+        selected_name != "RandomForest + ROS"
+        and selected["cv_macro_f1_mean"] > incumbent_cv
+        and selected["holdout"]["macro_f1"] > incumbent_test["macro_f1"]
+    ):
+        backup_path = promote_model(
+            fitted_candidates[selected_name],
+            X,
+            y,
+            serving_sample,
+        )
+        promotion = {
+            "promoted": True,
+            "reason": (
+                "The CV-selected candidate exceeded the incumbent on training-fold "
+                "CV macro-F1 and untouched holdout macro-F1."
+            ),
+            "backup_path": backup_path,
+        }
+
+    report = {
+        "dataset": {
+            "rows": int(len(df)),
+            "columns": int(len(df.columns)),
+            "target_counts": {
+                str(label): int(count)
+                for label, count in y.value_counts().reindex(LABELS).items()
+            },
+            "excluded_post_outcome_features": [
+                "vehicles_involved",
+                "casualties",
+                "risk_score",
+            ],
+        },
+        "evaluation": {
+            "split": "stratified 80/20 holdout",
+            "random_state": RANDOM_STATE,
+            "cross_validation": "5-fold stratified CV on training partition",
+            "labels": LABELS,
+            "features": FEATURE_COLS,
+            "serving_input_features": SERVING_FEATURE_COLS,
+            "oversampling": (
+                "RandomOverSampler is inside the training pipeline and runs "
+                "only during fit, including within CV folds."
+            ),
+        },
+        "incumbent": incumbent_test,
+        "majority_baseline": baseline_test,
+        "candidates": candidate_results,
+        "selected_by_cv": selected_name,
+        "promotion": promotion,
+    }
+    write_report(report)
+
+    print("\nHoldout comparison:")
+    print(
+        f"  Incumbent: accuracy {incumbent_test['accuracy']:.4f}, "
+        f"macro-F1 {incumbent_test['macro_f1']:.4f}, "
+        f"fatal precision {incumbent_test['per_class']['fatal']['precision']:.4f}, "
+        f"fatal recall {incumbent_test['per_class']['fatal']['recall']:.4f}"
+    )
+    print(
+        f"  Majority baseline: accuracy {baseline_test['accuracy']:.4f}, "
+        f"macro-F1 {baseline_test['macro_f1']:.4f}"
+    )
+    print(f"Selected by CV: {selected_name}")
+    print(f"Promotion: {promotion['reason']}")
+    print(f"Saved evaluation report: {COMPARISON_PATH}")
+
+
+if __name__ == "__main__":
+    main()

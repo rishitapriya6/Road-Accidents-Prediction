@@ -1,4 +1,5 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { useState } from "react";
 import { deletePrediction } from "../api";
 
 /**
@@ -10,12 +11,17 @@ import { deletePrediction } from "../api";
  *   onDelete — callback(id) called after a successful delete
  */
 export default function HistoryTable({ records, onDelete }) {
-  const navigate = useNavigate();
+  const [deleteError, setDeleteError] = useState("");
 
   async function handleDelete(id) {
     if (!window.confirm("Delete this prediction record?")) return;
-    await deletePrediction(id);
-    onDelete(id);
+    setDeleteError("");
+    try {
+      await deletePrediction(id);
+      onDelete(id);
+    } catch (error) {
+      setDeleteError(error.message || "Could not delete this prediction.");
+    }
   }
 
   const badgeClass = {
@@ -24,13 +30,14 @@ export default function HistoryTable({ records, onDelete }) {
     fatal: "badge-fatal",
   };
 
-  if (records.length === 0) {
-    return <p className="empty-msg">No records found.</p>;
-  }
-
   return (
-    <div className="table-wrapper">
-      <table className="history-table">
+    <>
+      {deleteError && <div className="alert alert-error" role="alert">{deleteError}</div>}
+      {records.length === 0 ? (
+        <p className="empty-msg">No records found. Predictions you create will appear here.</p>
+      ) : (
+        <div className="table-wrapper">
+          <table className="history-table">
         <thead>
           <tr>
             <th>ID</th>
@@ -61,6 +68,7 @@ export default function HistoryTable({ records, onDelete }) {
                 <Link to={`/result/${r.id}`} className="btn btn-sm btn-view">View</Link>
                 <Link to={`/history/${r.id}/edit`} className="btn btn-sm btn-edit">Edit</Link>
                 <button
+                  type="button"
                   className="btn btn-sm btn-delete"
                   onClick={() => handleDelete(r.id)}
                 >
@@ -70,7 +78,9 @@ export default function HistoryTable({ records, onDelete }) {
             </tr>
           ))}
         </tbody>
-      </table>
-    </div>
+          </table>
+        </div>
+      )}
+    </>
   );
 }

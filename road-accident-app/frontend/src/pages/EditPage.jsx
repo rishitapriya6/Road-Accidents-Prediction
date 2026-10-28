@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import PredictPage from "./PredictPage";
 import { fetchPrediction } from "../api";
@@ -27,5 +27,5 @@ export default function EditPage() {
   if (error)   return <main style={{ padding: "2rem" }}><div className="alert alert-error">{error}</div></main>;
 
   // Reuse PredictPage with editId and initialData (the same controlled form)
-  return <PredictPage editId={id} initialData={prediction} />;
+  return <PredictPage key={id} editId={id} initialData={prediction} />;
 }

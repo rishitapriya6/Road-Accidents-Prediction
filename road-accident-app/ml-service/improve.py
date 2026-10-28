@@ -37,9 +37,8 @@ CATEGORICAL_COLS = [
     "traffic_density", "cause"
 ]
 NUMERIC_COLS = [
-    "latitude", "longitude", "hour",
-    "is_weekend", "lanes", "traffic_signal",
-    "temperature", "is_peak_hour"
+    "hour", "is_weekend", "lanes",
+    "traffic_signal", "temperature", "is_peak_hour"
 ]
 FEATURE_COLS = CATEGORICAL_COLS + NUMERIC_COLS
 TARGET_COL = "accident_severity"

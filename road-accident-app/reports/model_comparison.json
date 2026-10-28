@@ -1,0 +1,339 @@
+{
+  "dataset": {
+    "rows": 20000,
+    "columns": 24,
+    "target_counts": {
+      "minor": 11025,
+      "major": 5988,
+      "fatal": 2987
+    },
+    "excluded_post_outcome_features": [
+      "vehicles_involved",
+      "casualties",
+      "risk_score"
+    ]
+  },
+  "evaluation": {
+    "split": "stratified 80/20 holdout",
+    "random_state": 42,
+    "cross_validation": "5-fold stratified CV on training partition",
+    "labels": [
+      "minor",
+      "major",
+      "fatal"
+    ],
+    "features": [
+      "city",
+      "state",
+      "day_of_week",
+      "road_type",
+      "weather",
+      "visibility",
+      "traffic_density",
+      "cause",
+      "hour",
+      "is_weekend",
+      "lanes",
+      "traffic_signal",
+      "temperature",
+      "is_peak_hour"
+    ],
+    "serving_input_features": [
+      "city",
+      "state",
+      "day_of_week",
+      "road_type",
+      "weather",
+      "visibility",
+      "traffic_density",
+      "cause",
+      "latitude",
+      "longitude",
+      "hour",
+      "is_weekend",
+      "lanes",
+      "traffic_signal",
+      "temperature",
+      "is_peak_hour"
+    ],
+    "oversampling": "RandomOverSampler is inside the training pipeline and runs only during fit, including within CV folds."
+  },
+  "incumbent": {
+    "accuracy": 0.46525,
+    "macro_f1": 0.3137110143940544,
+    "per_class": {
+      "minor": {
+        "precision": 0.5476439790575917,
+        "recall": 0.7115646258503401,
+        "f1": 0.6189349112426036,
+        "support": 2205
+      },
+      "major": {
+        "precision": 0.30652680652680653,
+        "recall": 0.21953255425709517,
+        "f1": 0.25583657587548636,
+        "support": 1198
+      },
+      "fatal": {
+        "precision": 0.10469314079422383,
+        "recall": 0.048576214405360134,
+        "f1": 0.06636155606407322,
+        "support": 597
+      }
+    },
+    "confusion_matrix": [
+      [
+        1569,
+        466,
+        170
+      ],
+      [
+        857,
+        263,
+        78
+      ],
+      [
+        439,
+        129,
+        29
+      ]
+    ]
+  },
+  "majority_baseline": {
+    "accuracy": 0.55125,
+    "macro_f1": 0.2369057211925866,
+    "per_class": {
+      "minor": {
+        "precision": 0.55125,
+        "recall": 1.0,
+        "f1": 0.7107171635777598,
+        "support": 2205
+      },
+      "major": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 1198
+      },
+      "fatal": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 597
+      }
+    },
+    "confusion_matrix": [
+      [
+        2205,
+        0,
+        0
+      ],
+      [
+        1198,
+        0,
+        0
+      ],
+      [
+        597,
+        0,
+        0
+      ]
+    ]
+  },
+  "candidates": {
+    "RandomForest + ROS": {
+      "cv_macro_f1_mean": 0.31173129364206287,
+      "cv_macro_f1_std": 0.0038894386620270576,
+      "cv_accuracy_mean": 0.46525,
+      "cv_accuracy_std": 0.005914098621091813,
+      "holdout": {
+        "accuracy": 0.46525,
+        "macro_f1": 0.3137110143940544,
+        "per_class": {
+          "minor": {
+            "precision": 0.5476439790575917,
+            "recall": 0.7115646258503401,
+            "f1": 0.6189349112426036,
+            "support": 2205
+          },
+          "major": {
+            "precision": 0.30652680652680653,
+            "recall": 0.21953255425709517,
+            "f1": 0.25583657587548636,
+            "support": 1198
+          },
+          "fatal": {
+            "precision": 0.10469314079422383,
+            "recall": 0.048576214405360134,
+            "f1": 0.06636155606407322,
+            "support": 597
+          }
+        },
+        "confusion_matrix": [
+          [
+            1569,
+            466,
+            170
+          ],
+          [
+            857,
+            263,
+            78
+          ],
+          [
+            439,
+            129,
+            29
+          ]
+        ]
+      }
+    },
+    "RandomForest": {
+      "cv_macro_f1_mean": 0.24772077252886185,
+      "cv_macro_f1_std": 0.0023979395957960704,
+      "cv_accuracy_mean": 0.5424374999999999,
+      "cv_accuracy_std": 0.0023832094956172086,
+      "holdout": {
+        "accuracy": 0.54225,
+        "macro_f1": 0.2513915588663276,
+        "per_class": {
+          "minor": {
+            "precision": 0.5492921492921493,
+            "recall": 0.9678004535147392,
+            "f1": 0.7008210180623974,
+            "support": 2205
+          },
+          "major": {
+            "precision": 0.30701754385964913,
+            "recall": 0.02921535893155259,
+            "f1": 0.053353658536585365,
+            "support": 1198
+          },
+          "fatal": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 597
+          }
+        },
+        "confusion_matrix": [
+          [
+            2134,
+            70,
+            1
+          ],
+          [
+            1163,
+            35,
+            0
+          ],
+          [
+            588,
+            9,
+            0
+          ]
+        ]
+      }
+    },
+    "ExtraTrees": {
+      "cv_macro_f1_mean": 0.26943820517956457,
+      "cv_macro_f1_std": 0.005667975593031536,
+      "cv_accuracy_mean": 0.521625,
+      "cv_accuracy_std": 0.004456385867493972,
+      "holdout": {
+        "accuracy": 0.5215,
+        "macro_f1": 0.27367226254909477,
+        "per_class": {
+          "minor": {
+            "precision": 0.5466813549986229,
+            "recall": 0.9002267573696145,
+            "f1": 0.6802604523646333,
+            "support": 2205
+          },
+          "major": {
+            "precision": 0.28152492668621704,
+            "recall": 0.08013355592654424,
+            "f1": 0.12475633528265107,
+            "support": 1198
+          },
+          "fatal": {
+            "precision": 0.17857142857142858,
+            "recall": 0.008375209380234505,
+            "f1": 0.016,
+            "support": 597
+          }
+        },
+        "confusion_matrix": [
+          [
+            1985,
+            204,
+            16
+          ],
+          [
+            1095,
+            96,
+            7
+          ],
+          [
+            551,
+            41,
+            5
+          ]
+        ]
+      }
+    },
+    "HistGradientBoosting": {
+      "cv_macro_f1_mean": 0.31488242875753636,
+      "cv_macro_f1_std": 0.004487088859385746,
+      "cv_accuracy_mean": 0.3435625,
+      "cv_accuracy_std": 0.010044043632919962,
+      "holdout": {
+        "accuracy": 0.32625,
+        "macro_f1": 0.30883847544083015,
+        "per_class": {
+          "minor": {
+            "precision": 0.5349702380952381,
+            "recall": 0.32607709750566893,
+            "f1": 0.4051845590307129,
+            "support": 2205
+          },
+          "major": {
+            "precision": 0.30195080576759964,
+            "recall": 0.29716193656093487,
+            "f1": 0.29953723180479597,
+            "support": 1198
+          },
+          "fatal": {
+            "precision": 0.15572105619498985,
+            "recall": 0.3852596314907873,
+            "f1": 0.22179363548698167,
+            "support": 597
+          }
+        },
+        "confusion_matrix": [
+          [
+            719,
+            667,
+            819
+          ],
+          [
+            414,
+            356,
+            428
+          ],
+          [
+            211,
+            156,
+            230
+          ]
+        ]
+      }
+    }
+  },
+  "selected_by_cv": "HistGradientBoosting",
+  "promotion": {
+    "promoted": false,
+    "reason": "No candidate improved both training-fold CV macro-F1 over the incumbent algorithm and holdout macro-F1 over the incumbent.",
+    "backup_path": null
+  }
+}

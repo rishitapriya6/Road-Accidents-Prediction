@@ -1,51 +1,70 @@
-import { Link, NavLink, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { Link, NavLink } from "react-router-dom";
 import "./Navbar.css";
 
-/**
- * Navbar — stateless navigation component with a dropdown for Model Info.
- * Uses NavLink for active-link styling.
- */
+const navigation = [
+  { to: "/dashboard", label: "Overview", icon: "◫" },
+  { to: "/", label: "Predict severity", icon: "＋", end: true },
+  { to: "/history", label: "Prediction history", icon: "▤" },
+];
+
 export default function Navbar() {
-  const [modelOpen, setModelOpen] = useState(false);
-
   return (
-    <header className="navbar">
-      <div className="navbar-brand">
-        <Link to="/" className="brand-link">
-          <span className="brand-icon">🚦</span>
-          <span>RoadSafe AI</span>
-        </Link>
-      </div>
-      <nav className="navbar-links">
-        <NavLink to="/" end className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-          Predict
-        </NavLink>
-        <NavLink to="/history" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-          History
-        </NavLink>
+    <aside className="sidebar">
+      <Link to="/dashboard" className="brand-link">
+        <span className="brand-mark" aria-hidden="true">R</span>
+        <span className="brand-copy">
+          <strong>RoadSafe</strong>
+          <span>SEVERITY ANALYTICS</span>
+        </span>
+      </Link>
 
-        {/* Dropdown for Model Info */}
-        <div
-          className="nav-dropdown"
-          onMouseEnter={() => setModelOpen(true)}
-          onMouseLeave={() => setModelOpen(false)}
-        >
+      <div className="sidebar-label">WORKSPACE</div>
+      <nav className="sidebar-nav" aria-label="Main navigation">
+        {navigation.map(({ to, label, icon, end }) => (
           <NavLink
-            to="/model"
+            key={to}
+            to={to}
+            end={end}
             className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
           >
-            Model Info ▾
+            <span className="nav-icon" aria-hidden="true">{icon}</span>
+            <span>{label}</span>
           </NavLink>
-          {modelOpen && (
-            <div className="dropdown-menu">
-              <Link to="/model/metrics" className="dropdown-item">Metrics</Link>
-              <Link to="/model/eda"     className="dropdown-item">EDA Charts</Link>
-              <Link to="/model/limitations" className="dropdown-item">Limitations</Link>
-            </div>
-          )}
-        </div>
+        ))}
       </nav>
-    </header>
+
+      <div className="sidebar-label model-label">MODEL</div>
+      <nav className="sidebar-nav model-nav" aria-label="Model information">
+        <NavLink
+          to="/model/metrics"
+          className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
+        >
+          <span className="nav-icon" aria-hidden="true">◷</span>
+          <span>Performance</span>
+        </NavLink>
+        <NavLink
+          to="/model/eda"
+          className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
+        >
+          <span className="nav-icon" aria-hidden="true">▥</span>
+          <span>Data exploration</span>
+        </NavLink>
+        <NavLink
+          to="/model/limitations"
+          className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
+        >
+          <span className="nav-icon" aria-hidden="true">ⓘ</span>
+          <span>Limitations</span>
+        </NavLink>
+      </nav>
+
+      <div className="sidebar-note">
+        <span className="sidebar-note-indicator" aria-hidden="true" />
+        <div>
+          <strong>Academic project</strong>
+          <span>Predictions are not safety guidance.</span>
+        </div>
+      </div>
+    </aside>
   );
 }

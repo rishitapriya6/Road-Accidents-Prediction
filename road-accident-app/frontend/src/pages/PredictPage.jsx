@@ -4,6 +4,35 @@ import FormField from "../components/FormField";
 import { createPrediction, fetchOptions, updatePrediction } from "../api";
 import "./PredictPage.css";
 
+function getInitialForm(initialData) {
+  if (!initialData) {
+    return {
+      city: "", state: "",
+      hour: "", dayOfWeek: "", isWeekend: "0",
+      roadType: "", lanes: "", trafficSignal: "0",
+      weather: "", visibility: "", temperature: "",
+      trafficDensity: "", cause: "", isPeakHour: "0",
+    };
+  }
+
+  return {
+    city: initialData.city || "",
+    state: initialData.state || "",
+    hour: String(initialData.hour ?? ""),
+    dayOfWeek: initialData.dayOfWeek ?? initialData.day_of_week ?? "",
+    isWeekend: String(initialData.isWeekend ?? initialData.is_weekend ?? 0),
+    roadType: initialData.roadType ?? initialData.road_type ?? "",
+    lanes: String(initialData.lanes ?? ""),
+    trafficSignal: String(initialData.trafficSignal ?? initialData.traffic_signal ?? 0),
+    weather: initialData.weather || "",
+    visibility: initialData.visibility || "",
+    temperature: String(initialData.temperature ?? ""),
+    trafficDensity: initialData.trafficDensity ?? initialData.traffic_density ?? "",
+    cause: initialData.cause || "",
+    isPeakHour: String(initialData.isPeakHour ?? initialData.is_peak_hour ?? 0),
+  };
+}
+
 /**
  * PredictPage — controlled form with all 16 fields grouped in fieldsets.
  * Also used as the Edit form when `editId` and `initialData` props are passed.
@@ -17,13 +46,7 @@ export default function PredictPage({ editId = null, initialData = null }) {
   const isEdit = editId !== null;
 
   // ── Form state ────────────────────────────────────────────────────────────
-  const [form, setForm] = useState({
-    city: "", state: "", latitude: "", longitude: "",
-    hour: "", dayOfWeek: "", isWeekend: "0",
-    roadType: "", lanes: "", trafficSignal: "0",
-    weather: "", visibility: "", temperature: "",
-    trafficDensity: "", cause: "", isPeakHour: "0",
-  });
+  const [form, setForm] = useState(() => getInitialForm(initialData));
 
   // Dropdown options loaded from the backend
   const [options, setOptions] = useState(null);
@@ -34,30 +57,6 @@ export default function PredictPage({ editId = null, initialData = null }) {
   // Loading / server error state
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
-
-  // Pre-fill form when editing an existing record
-  useEffect(() => {
-    if (initialData) {
-      setForm({
-        city:           initialData.city || "",
-        state:          initialData.state || "",
-        latitude:       String(initialData.latitude ?? ""),
-        longitude:      String(initialData.longitude ?? ""),
-        hour:           String(initialData.hour ?? ""),
-        dayOfWeek:      initialData.dayOfWeek ?? initialData.day_of_week ?? "",
-        isWeekend:      String(initialData.isWeekend ?? initialData.is_weekend ?? 0),
-        roadType:       initialData.roadType ?? initialData.road_type ?? "",
-        lanes:          String(initialData.lanes ?? ""),
-        trafficSignal:  String(initialData.trafficSignal ?? initialData.traffic_signal ?? 0),
-        weather:        initialData.weather || "",
-        visibility:     initialData.visibility || "",
-        temperature:    String(initialData.temperature ?? ""),
-        trafficDensity: initialData.trafficDensity ?? initialData.traffic_density ?? "",
-        cause:          initialData.cause || "",
-        isPeakHour:     String(initialData.isPeakHour ?? initialData.is_peak_hour ?? 0),
-      });
-    }
-  }, [initialData]);
 
   // Load dropdown options from the backend
   useEffect(() => {
@@ -80,8 +79,6 @@ export default function PredictPage({ editId = null, initialData = null }) {
     const required = ["city","state","dayOfWeek","roadType","weather","visibility","trafficDensity","cause"];
     required.forEach((f) => { if (!form[f]) e[f] = "This field is required"; });
 
-    if (form.latitude  === "" || isNaN(form.latitude))  e.latitude  = "Required";
-    if (form.longitude === "" || isNaN(form.longitude)) e.longitude = "Required";
     if (form.lanes     === "" || isNaN(form.lanes) || Number(form.lanes) < 1) e.lanes = "Must be >= 1";
     if (form.hour  === "" || isNaN(form.hour) || Number(form.hour) < 0 || Number(form.hour) > 23) {
       e.hour = "Hour must be 0–23";
@@ -107,8 +104,6 @@ export default function PredictPage({ editId = null, initialData = null }) {
     const payload = {
       city:           form.city,
       state:          form.state,
-      latitude:       parseFloat(form.latitude),
-      longitude:      parseFloat(form.longitude),
       hour:           parseInt(form.hour),
       dayOfWeek:      form.dayOfWeek,
       isWeekend:      parseInt(form.isWeekend),
@@ -149,7 +144,7 @@ export default function PredictPage({ editId = null, initialData = null }) {
         <p className="subtitle">Fill in the accident conditions to get an AI-powered severity prediction.</p>
       </section>
 
-      {serverError && <div className="alert alert-error">{serverError}</div>}
+      {serverError && <div className="alert alert-error" role="alert">{serverError}</div>}
 
       <form onSubmit={handleSubmit} noValidate className="predict-form">
 
@@ -159,16 +154,10 @@ export default function PredictPage({ editId = null, initialData = null }) {
           <div className="field-grid">
             <FormField id="city"      label="City"      type="select"
               value={form.city}    onChange={handleChange}
-              options={options?.city || []}    error={errors.city} />
+              options={options?.city || []}    error={errors.city} required />
             <FormField id="state"     label="State"     type="select"
               value={form.state}   onChange={handleChange}
-              options={options?.state || []}   error={errors.state} />
-            <FormField id="latitude"  label="Latitude"  type="number"
-              value={form.latitude}  onChange={handleChange}
-              step="0.0001" placeholder="e.g. 18.96"   error={errors.latitude} />
-            <FormField id="longitude" label="Longitude" type="number"
-              value={form.longitude} onChange={handleChange}
-              step="0.0001" placeholder="e.g. 72.83"   error={errors.longitude} />
+              options={options?.state || []}   error={errors.state} required />
           </div>
         </fieldset>
 
@@ -178,20 +167,20 @@ export default function PredictPage({ editId = null, initialData = null }) {
           <div className="field-grid">
             <FormField id="hour"       label="Hour (0–23)"  type="number"
               value={form.hour}     onChange={handleChange}
-              min="0" max="23" placeholder="e.g. 14"   error={errors.hour} />
+              min="0" max="23" placeholder=""   error={errors.hour} required />
             <FormField id="dayOfWeek"  label="Day of Week"  type="select"
               value={form.dayOfWeek} onChange={handleChange}
               options={["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]}
-              error={errors.dayOfWeek} />
+              error={errors.dayOfWeek} required />
             <div className="form-field">
-              <label className="form-label">Is Weekend?</label>
+              <label htmlFor="isWeekend" className="form-label">Is Weekend?</label>
               <select id="isWeekend" name="isWeekend" className="form-select"
                 value={form.isWeekend} onChange={handleChange}>
                 {binaryOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
             <div className="form-field">
-              <label className="form-label">Is Peak Hour?</label>
+              <label htmlFor="isPeakHour" className="form-label">Is Peak Hour?</label>
               <select id="isPeakHour" name="isPeakHour" className="form-select"
                 value={form.isPeakHour} onChange={handleChange}>
                 {binaryOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -206,15 +195,15 @@ export default function PredictPage({ editId = null, initialData = null }) {
           <div className="field-grid">
             <FormField id="roadType"       label="Road Type"       type="select"
               value={form.roadType}       onChange={handleChange}
-              options={options?.road_type || []}        error={errors.roadType} />
+              options={options?.road_type || []}        error={errors.roadType} required />
             <FormField id="lanes"          label="Number of Lanes" type="number"
               value={form.lanes}          onChange={handleChange}
-              min="1" max="6" placeholder="1–6"        error={errors.lanes} />
+              min="1" max="6" placeholder=""        error={errors.lanes} required />
             <FormField id="trafficDensity" label="Traffic Density" type="select"
               value={form.trafficDensity} onChange={handleChange}
-              options={options?.traffic_density || []}  error={errors.trafficDensity} />
+              options={options?.traffic_density || []}  error={errors.trafficDensity} required />
             <div className="form-field">
-              <label className="form-label">Traffic Signal?</label>
+              <label htmlFor="trafficSignal" className="form-label">Traffic Signal?</label>
               <select id="trafficSignal" name="trafficSignal" className="form-select"
                 value={form.trafficSignal} onChange={handleChange}>
                 {binaryOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -229,13 +218,13 @@ export default function PredictPage({ editId = null, initialData = null }) {
           <div className="field-grid">
             <FormField id="weather"     label="Weather"            type="select"
               value={form.weather}    onChange={handleChange}
-              options={options?.weather || []}      error={errors.weather} />
+              options={options?.weather || []}      error={errors.weather} required />
             <FormField id="visibility"  label="Visibility"         type="select"
               value={form.visibility} onChange={handleChange}
-              options={options?.visibility || []}   error={errors.visibility} />
+              options={options?.visibility || []}   error={errors.visibility} required />
             <FormField id="temperature" label="Temperature (°C)" type="number"
               value={form.temperature} onChange={handleChange}
-              min="15" max="40" placeholder="15–40"  error={errors.temperature} />
+              min="15" max="40" placeholder=""  error={errors.temperature} required />
           </div>
         </fieldset>
 
@@ -245,7 +234,7 @@ export default function PredictPage({ editId = null, initialData = null }) {
           <div className="field-grid">
             <FormField id="cause" label="Primary Cause" type="select"
               value={form.cause} onChange={handleChange}
-              options={options?.cause || []} error={errors.cause} />
+              options={options?.cause || []} error={errors.cause} required />
           </div>
         </fieldset>
 

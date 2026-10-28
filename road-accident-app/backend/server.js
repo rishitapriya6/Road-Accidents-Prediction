@@ -146,6 +146,45 @@ app.delete("/api/predictions/:id", (req, res) => {
   res.status(204).end();
 });
 
+
+
+const REPORTS_DIR = path.join(__dirname, "../reports");
+
+// GET /api/model/metrics
+app.get("/api/model/metrics", (req, res) => {
+  try {
+    const metricsPath = path.join(REPORTS_DIR, "metrics.json");
+    const metrics = JSON.parse(fs.readFileSync(metricsPath, "utf8"));
+    res.json(metrics);
+  } catch (error) {
+    console.error("Could not load model metrics:", error.message);
+    res.status(500).json({ error: "Could not load model metrics" });
+  }
+});
+
+// GET /api/reports/:filename
+app.get("/api/reports/:filename", (req, res) => {
+  const allowedFiles = [
+    "confusion_matrix.png",
+    "feature_importance.png",
+    "class_distribution.png",
+  ];
+
+  const filename = req.params.filename;
+
+  if (!allowedFiles.includes(filename)) {
+    return res.status(404).json({ error: "Report not found" });
+  }
+
+  const imagePath = path.join(REPORTS_DIR, filename);
+
+  if (!fs.existsSync(imagePath)) {
+    return res.status(404).json({ error: "Report image does not exist" });
+  }
+
+  res.sendFile(imagePath);
+});
+
 app.listen(PORT, () => {
   console.log(`Backend running at http://localhost:${PORT}`);
 });

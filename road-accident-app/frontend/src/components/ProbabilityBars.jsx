@@ -7,9 +7,9 @@
  */
 export default function ProbabilityBars({ probMinor = 0, probMajor = 0, probFatal = 0 }) {
   const bars = [
-    { label: "Minor", value: probMinor, color: "#2e7d32" },
-    { label: "Major", value: probMajor, color: "#e65100" },
-    { label: "Fatal", value: probFatal, color: "#b71c1c" },
+    { label: "Minor", value: probMinor, color: "var(--minor)" },
+    { label: "Major", value: probMajor, color: "var(--major)" },
+    { label: "Fatal", value: probFatal, color: "var(--fatal)" },
   ];
 
   return (
@@ -17,8 +17,15 @@ export default function ProbabilityBars({ probMinor = 0, probMajor = 0, probFata
       <h3 className="prob-title">Class Probabilities</h3>
       {bars.map(({ label, value, color }) => (
         <div key={label} className="prob-row">
-          <span className="prob-label">{label}</span>
-          <div className="prob-track">
+          <span id={`prob-${label.toLowerCase()}`} className="prob-label">{label}</span>
+          <div
+            className="prob-track"
+            role="progressbar"
+            aria-labelledby={`prob-${label.toLowerCase()}`}
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow={(value * 100).toFixed(1)}
+          >
             <div
               className="prob-fill"
               style={{

@@ -18,6 +18,7 @@ export default function FilterDropdown({ value, onChange }) {
 
       <select
         id="severity-filter"
+        aria-label="Filter prediction history by severity"
         className="form-select"
         value={selectedValue}
         onChange={(e) => setSelectedValue(e.target.value)}
